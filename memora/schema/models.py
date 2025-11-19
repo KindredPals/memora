@@ -67,6 +67,10 @@ class MessageBlock(BaseModel):
     msg_position: int = Field(
         description="Position of this message in the interaction."
     )
+    timestamp: str = Field(
+        default=None,
+        description="The exact time of the message."
+    )
 
 
 class Memory(BaseModel):

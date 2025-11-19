@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Tuple
 
 import neo4j
@@ -28,18 +28,18 @@ class Neo4jInteraction(BaseGraphDB):
             await tx.run(
                 """
                     MATCH (interaction:Interaction {
-                        org_id: $org_id, 
-                        user_id: $user_id, 
+                        org_id: $org_id,
+                        user_id: $user_id,
                         interaction_id: $interaction_id
                     })
 
-                    CREATE (msg1:MessageBlock {msg_position: 0, role: $messages[0].role, content: $messages[0].content})
+                    CREATE (msg1:MessageBlock {msg_position: 0, role: $messages[0].role, content: $messages[0].content, timestamp: $messages[0].timestamp})
                     CREATE (interaction)-[:FIRST_MESSAGE]->(msg1)
 
                     // Step 1: Create the remaining message nodes and collect them in a list.
                     WITH msg1
                     UNWIND RANGE(1, SIZE($messages) - 1) AS idx
-                    CREATE (msg:MessageBlock {msg_position: idx, role: $messages[idx].role, content: $messages[idx].content})
+                    CREATE (msg:MessageBlock {msg_position: idx, role: $messages[idx].role, content: $messages[idx].content, timestamp: $messages[idx].timestamp})
 
                     // Step 2: Create a chain with the messages all connected via IS_NEXT from the first message.
                     WITH msg1, COLLECT(msg) AS nodeList
@@ -163,15 +163,15 @@ class Neo4jInteraction(BaseGraphDB):
                 // Create the memory nodes.
                 UNWIND $memories_and_source as memory_tuple
                 CREATE (memory:Memory {
-                    org_id: $org_id, 
-                    user_id: $user_id, 
+                    org_id: $org_id,
+                    user_id: $user_id,
                     agent_id: $agent_id,
-                    interaction_id: $interaction_id, 
-                    memory_id: memory_tuple[0],  
-                    memory: memory_tuple[1], 
+                    interaction_id: $interaction_id,
+                    memory_id: memory_tuple[0],
+                    memory: memory_tuple[1],
                     obtained_at: datetime($interaction_date)
                 })
-                
+
                 // Link to interaction
                 CREATE (interaction)<-[:INTERACTION_SOURCE]-(memory)
 
@@ -221,7 +221,7 @@ class Neo4jInteraction(BaseGraphDB):
                 UNWIND $contrary_and_existing_ids as contrary_and_existing_id_tuple
                 MATCH (new_contrary_memory:Memory {org_id: $org_id, user_id: $user_id, memory_id: contrary_and_existing_id_tuple[0]})
                 MATCH (old_memory:Memory {org_id: $org_id, user_id: $user_id, memory_id: contrary_and_existing_id_tuple[1]})
-                
+
                 MERGE (new_contrary_memory)<-[:CONTRARY_UPDATE]-(old_memory)
 
             """,
@@ -690,8 +690,8 @@ class Neo4jInteraction(BaseGraphDB):
 
             query = """
                 MATCH (interaction: Interaction {
-                    org_id: $org_id, 
-                    user_id: $user_id, 
+                    org_id: $org_id,
+                    user_id: $user_id,
                     interaction_id: $interaction_id
                 })
 
@@ -712,13 +712,13 @@ class Neo4jInteraction(BaseGraphDB):
 
                 WITH interaction, messages, mem, collect(msg{.*}) AS msg_sources
 
-                OPTIONAL MATCH (user:User {org_id: mem.org_id, user_id: mem.user_id})              
+                OPTIONAL MATCH (user:User {org_id: mem.org_id, user_id: mem.user_id})
                 OPTIONAL MATCH (agent:Agent {org_id: mem.org_id, agent_id: mem.agent_id})
 
                 WITH interaction, messages, collect(mem{
-                                                        .*, 
+                                                        .*,
                                                         memory: apoc.text.replace(
-                                                            apoc.text.replace(mem.memory, '(?i)user_[a-z0-9\\-]+(?:\\'s)?', user.user_name), 
+                                                            apoc.text.replace(mem.memory, '(?i)user_[a-z0-9\\-]+(?:\\'s)?', user.user_name),
                                                             '(?i)agent_[a-z0-9\\-]+(?:\\'s)?',  agent.agent_label
                                                         ),
                                                         message_sources: msg_sources
@@ -772,6 +772,7 @@ class Neo4jInteraction(BaseGraphDB):
                     models.MessageBlock(
                         role=message.get("role"),
                         content=message.get("content"),
+                        timestamp=message.get("timestamp", datetime.now(timezone.utc).isoformat(timespec='seconds')),
                         msg_position=message["msg_position"],
                     )
                     for message in (interaction_data.get("messages") or [])
@@ -789,6 +790,7 @@ class Neo4jInteraction(BaseGraphDB):
                             models.MessageBlock(
                                 role=msg.get("role"),
                                 content=msg.get("content"),
+                                timestamp=msg.get("timestamp", datetime.now(timezone.utc).isoformat(timespec='seconds')),
                                 msg_position=msg["msg_position"],
                             )
                             for msg in (memory.get("message_sources") or [])
@@ -861,7 +863,7 @@ class Neo4jInteraction(BaseGraphDB):
                 WITH DISTINCT interaction SKIP $skip LIMIT $limit
 
                 // Initialize messages/memories upfront
-                WITH interaction, [] AS messages, [] AS memories 
+                WITH interaction, [] AS messages, [] AS memories
             """
 
             if with_their_messages:
@@ -876,14 +878,14 @@ class Neo4jInteraction(BaseGraphDB):
                 OPTIONAL MATCH (mem)-[:MESSAGE_SOURCE]->(msg)
 
                 WITH interaction, messages, mem, collect(msg{.*}) AS msg_sources
-                
-                OPTIONAL MATCH (user:User {org_id: mem.org_id, user_id: mem.user_id})              
+
+                OPTIONAL MATCH (user:User {org_id: mem.org_id, user_id: mem.user_id})
                 OPTIONAL MATCH (agent:Agent {org_id: mem.org_id, agent_id: mem.agent_id})
 
                 WITH interaction, messages, collect(mem{
-                                                        .*, 
+                                                        .*,
                                                         memory: apoc.text.replace(
-                                                            apoc.text.replace(mem.memory, '(?i)user_[a-z0-9\\-]+(?:\\'s)?', user.user_name), 
+                                                            apoc.text.replace(mem.memory, '(?i)user_[a-z0-9\\-]+(?:\\'s)?', user.user_name),
                                                             '(?i)agent_[a-z0-9\\-]+(?:\\'s)?',  agent.agent_label
                                                         ),
                                                         message_sources: msg_sources
@@ -927,6 +929,7 @@ class Neo4jInteraction(BaseGraphDB):
                         models.MessageBlock(
                             role=message.get("role"),
                             content=message.get("content"),
+                            timestamp=message.get("timestamp", datetime.now(timezone.utc).isoformat(timespec='seconds')),
                             msg_position=message["msg_position"],
                         )
                         for message in (interaction_data.get("messages") or [])
@@ -999,8 +1002,8 @@ class Neo4jInteraction(BaseGraphDB):
             await tx.run(
                 """
                 MATCH (interaction: Interaction {
-                    org_id: $org_id, 
-                    user_id: $user_id, 
+                    org_id: $org_id,
+                    user_id: $user_id,
                     interaction_id: $interaction_id
                     })-[r:FIRST_MESSAGE|IS_NEXT*]->(message:MessageBlock)
 
@@ -1053,7 +1056,7 @@ class Neo4jInteraction(BaseGraphDB):
             await tx.run(
                 """
                 MATCH (u:User {org_id: $org_id, user_id: $user_id})-[:INTERACTIONS_IN]->(ic)-[:HAD_INTERACTION]->(interaction:Interaction)
-                
+
                 OPTIONAL MATCH (interaction)<-[:INTERACTION_SOURCE]-(memory:Memory)
                 OPTIONAL MATCH (interaction)-[:HAS_OCCURRENCE_ON]->(date:Date)
                 OPTIONAL MATCH (interaction)-[:FIRST_MESSAGE|IS_NEXT*]->(messages:MessageBlock)
