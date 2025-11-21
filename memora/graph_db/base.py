@@ -124,7 +124,7 @@ class BaseGraphDB(ABC):
     # Agent methods
     @abstractmethod
     async def create_agent(
-        self, org_id: str, agent_label: str, user_id: Optional[str] = None
+        self, org_id: str, agent_label: str, user_id: Optional[str] = None, agent_id: Optional[str] = None
     ) -> models.Agent:
         """
         Creates a new agent in the graph database.
