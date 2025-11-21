@@ -40,12 +40,13 @@ class BaseGraphDB(ABC):
 
     # Organization methods
     @abstractmethod
-    async def create_organization(self, org_name: str) -> models.Organization:
+    async def create_organization(self, org_name: str, org_id: Optional[str] = None) -> models.Organization:
         """
         Creates a new organization in the graph database.
 
         Args:
             org_name (str): The name of the organization to create.
+            org_id (Optional[str]): A predetermined shortUUID.
 
         Returns:
             Organization object containing:
