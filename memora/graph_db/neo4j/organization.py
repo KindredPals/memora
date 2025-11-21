@@ -32,7 +32,8 @@ class Neo4jOrganization(BaseGraphDB):
         if not isinstance(org_name, str) or not org_name:
             raise TypeError("`org_name` must be a string and have a value.")
 
-        org_id = shortuuid.uuid()
+        if org_id is None:
+            org_id = shortuuid.uuid()
         self.logger.info(f"Creating organization with ID {org_id}")
 
         async def create_org_tx(tx):
