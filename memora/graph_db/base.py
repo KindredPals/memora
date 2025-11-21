@@ -135,6 +135,8 @@ class BaseGraphDB(ABC):
             user_id (Optional[str]): Optional Short UUID of the user. This is used when the agent is created
                 specifically for a user, indicating that both the organization and the
                 user will have this agent.
+            agent_id (Optional[str]: Optional Short UUID of the agent. This is used when an agent has been
+                defined externally or deleted and needs to be restored.)
 
         Returns:
             Agent containing:
