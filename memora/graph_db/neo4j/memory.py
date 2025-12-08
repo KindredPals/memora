@@ -157,7 +157,7 @@ class Neo4jMemory(BaseGraphDB):
                         message_sources=[
                             models.MessageBlock(
                                 role=msg_source["role"],
-                                timestamp=msg_source.get("timestamp", datetime.now(timezone.utc)).isoformat(timespec='seconds'),
+                                timestamp=msg_source.get("timestamp", datetime.now(timezone.utc).isoformat(timespec='seconds')),
                                 content=msg_source["content"],
                                 msg_position=msg_source["msg_position"],
                             )
