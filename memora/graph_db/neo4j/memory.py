@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 import neo4j
@@ -102,27 +103,27 @@ class Neo4jMemory(BaseGraphDB):
 
                     UNWIND ids_dict_list AS ids_dict
                     MATCH (memory:Memory {org_id: ids_dict.org_id, user_id: ids_dict.user_id, memory_id: ids_dict.memory_id})
-                                  
+
                     // Use the most up to date contrary update memory if it exists
                     OPTIONAL MATCH (memory)-[:CONTRARY_UPDATE*]->(contraryMemory:Memory) WHERE NOT (contraryMemory)-[:CONTRARY_UPDATE]->()
                     WITH coalesce(contraryMemory, memory) AS memoryToReturn
 
                     OPTIONAL MATCH (memoryToReturn)-[:MESSAGE_SOURCE]->(msgSource)
                     WITH memoryToReturn, collect(msgSource{.*}) as msgSources
-                                  
-                    MATCH (user:User {org_id: memoryToReturn.org_id, user_id: memoryToReturn.user_id})              
+
+                    MATCH (user:User {org_id: memoryToReturn.org_id, user_id: memoryToReturn.user_id})
                     MATCH (agent:Agent {org_id: memoryToReturn.org_id, agent_id: memoryToReturn.agent_id})
-                                  
+
                     // Case-insensitive 'user_' or 'agent_' followed by UUID and optional ('s) placeholders are replaced with actual names
                     RETURN collect(DISTINCT memoryToReturn{
                                                 .org_id,
                                                 .agent_id,
                                                 .user_id,
                                                 .interaction_id,
-                                                .memory_id, 
+                                                .memory_id,
                                                 .obtained_at,
                                                 memory: apoc.text.replace(
-                                                    apoc.text.replace(memoryToReturn.memory, '(?i)user_[a-z0-9\\-]+(?:\\'s)?', user.user_name), 
+                                                    apoc.text.replace(memoryToReturn.memory, '(?i)user_[a-z0-9\\-]+(?:\\'s)?', user.user_name),
                                                     '(?i)agent_[a-z0-9\\-]+(?:\\'s)?',  agent.agent_label
                                                 ),
                                                 message_sources: msgSources
@@ -156,6 +157,7 @@ class Neo4jMemory(BaseGraphDB):
                         message_sources=[
                             models.MessageBlock(
                                 role=msg_source["role"],
+                                timestamp=msg_source.get("timestamp", datetime.now(timezone.utc)).isoformat(timespec='seconds'),
                                 content=msg_source["content"],
                                 msg_position=msg_source["msg_position"],
                             )
@@ -212,17 +214,17 @@ class Neo4jMemory(BaseGraphDB):
                 MATCH (m)-[:MESSAGE_SOURCE]->(msgSource)
                 WITH m, collect(msgSource{.*}) as msgSources
 
-                MATCH (user:User {org_id: m.org_id, user_id: m.user_id})              
+                MATCH (user:User {org_id: m.org_id, user_id: m.user_id})
                 MATCH (agent:Agent {org_id: m.org_id, agent_id: m.agent_id})
                 RETURN m{
                         .org_id,
                         .agent_id,
                         .user_id,
                         .interaction_id,
-                        .memory_id, 
+                        .memory_id,
                         .obtained_at,
                         memory: apoc.text.replace(
-                            apoc.text.replace(m.memory, '(?i)user_[a-z0-9\\-]+(?:\\'s)?', user.user_name), 
+                            apoc.text.replace(m.memory, '(?i)user_[a-z0-9\\-]+(?:\\'s)?', user.user_name),
                             '(?i)agent_[a-z0-9\\-]+(?:\\'s)?',  agent.agent_label
                         ),
                         message_sources: msgSources
@@ -314,17 +316,17 @@ class Neo4jMemory(BaseGraphDB):
                 OPTIONAL MATCH (memory)-[:MESSAGE_SOURCE]->(msgSource)
                 WITH memory, collect(msgSource{.*}) as msgSources
 
-                MATCH (user:User {org_id: memory.org_id, user_id: memory.user_id})              
+                MATCH (user:User {org_id: memory.org_id, user_id: memory.user_id})
                 MATCH (agent:Agent {org_id: memory.org_id, agent_id: memory.agent_id})
                 RETURN memory{
                         .org_id,
                         .agent_id,
                         .user_id,
                         .interaction_id,
-                        .memory_id, 
+                        .memory_id,
                         .obtained_at,
                         memory: apoc.text.replace(
-                            apoc.text.replace(memory.memory, '(?i)user_[a-z0-9\\-]+(?:\\'s)?', user.user_name), 
+                            apoc.text.replace(memory.memory, '(?i)user_[a-z0-9\\-]+(?:\\'s)?', user.user_name),
                             '(?i)agent_[a-z0-9\\-]+(?:\\'s)?',  agent.agent_label
                         ),
                         message_sources: msgSources
@@ -435,10 +437,10 @@ class Neo4jMemory(BaseGraphDB):
                     .agent_id,
                     .user_id,
                     .interaction_id,
-                    .memory_id, 
+                    .memory_id,
                     .obtained_at,
                     memory: apoc.text.replace(
-                        apoc.text.replace(m.memory, '(?i)user_[a-z0-9\\-]+(?:\\'s)?', user.user_name), 
+                        apoc.text.replace(m.memory, '(?i)user_[a-z0-9\\-]+(?:\\'s)?', user.user_name),
                         '(?i)agent_[a-z0-9\\-]+(?:\\'s)?',  agent.agent_label
                     ),
                     message_sources: msgSources

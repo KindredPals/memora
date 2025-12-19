@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/),  
+The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## **[Unreleased]**
@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - At the end of interactions, the agent will perform exploratory read queries to understand existing knowledge and then make write/update queries to the graph database with new information from the interaction.
   - This feature is being built on Memgraph, which will become Memora's main graph database. It was chosen for its in-memory storage and speed, aligning with our low latency goals.
 
+## **[0.3.1.1] - 2025-11-19**
+
+- Added timestamps to MessageBlock
 
 ## **[0.3.1] - 2025-02-19**
 
@@ -66,10 +69,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     ...
     # Get a memory with its source messages
     memoryObj = await graph.get_user_memory(org_id, user_id, memory_id)
-    
+
     print(memoryObj.memory)  # "Jake is allergic to peanuts"
     print(memoryObj.message_sources)  # List of MessageBlock(s) that triggered this memory e.g [MessageBlock(role="user", content="I had another peanut incident today; it confirms I am allergic.", msg_position=0), ...]
-    
+
     # Each message source contains:
     for msg in memoryObj.message_sources:
         print(f"Role: {msg.role}")         # e.g., "user" or "assistant"
@@ -144,9 +147,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     # NEW - Use get_interaction with boolean flags
     # Get both messages and memories
     interaction = await graph.get_interaction(
-        org_id, 
-        user_id, 
-        interaction_id, 
+        org_id,
+        user_id,
+        interaction_id,
         with_messages=True,  # Include messages
         with_memories=True   # Include memories
     )
@@ -156,18 +159,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
     # Get only messages
     messages_only_interaction = await graph.get_interaction(
-        org_id, 
-        user_id, 
-        interaction_id, 
+        org_id,
+        user_id,
+        interaction_id,
         with_messages=True,
         with_memories=False
     )
 
     # Get only memories
     memories_only_interaction = await graph.get_interaction(
-        org_id, 
-        user_id, 
-        interaction_id, 
+        org_id,
+        user_id,
+        interaction_id,
         with_messages=False,
         with_memories=True
     )
@@ -187,7 +190,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     ```
 
 ### **Fixed**
-- **Update Interaction Inconsistency**:  
+- **Update Interaction Inconsistency**:
   - Fixed bug where memories were no longer linked to their source messages after the update, even though the update to the interaction was just appending new messages.
   - Fixed update to interaction not being stored when the update is shorter than existing interaction (e.g. different conversation thread).
 
@@ -211,7 +214,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## **[0.1.6] - 2025-01-08**
 
 ### **Fixed**
-- **Contrary Memories Validation**:  
+- **Contrary Memories Validation**:
   - Fixed a bug related to the validation error for `contrary_memories` when saving or updating an interaction.
 - **Weird Index Error**:
   - Fixed an index error that occurred when updating an interaction to a shorter and different one.
@@ -221,9 +224,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## **[0.1.5] - 2025-01-05**
 
 ### **Added**
-- **Vector-Graph Database Association**:  
-    - You can now directly associate a vector database with the graph database, so graph methods calls results in memories added / deleted across both databases.  
-    - Association can be done by setting `.associated_vector_db` or during initialization.  
+- **Vector-Graph Database Association**:
+    - You can now directly associate a vector database with the graph database, so graph methods calls results in memories added / deleted across both databases.
+    - Association can be done by setting `.associated_vector_db` or during initialization.
       ```python
       from memora.graph_db.neo4j import Neo4jGraphInterface
       from qdrant_client import AsyncQdrantClient
@@ -254,8 +257,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - **⚠️ Breaking Changes**:
     - Every subclass of `BaseGraphDB` must now implement `def get_associated_vector_db(self)` that returns the vector database (`BaseVectorDB`) associated with the graph database or `None`.
 
-    - Previously, users had to pass the vector database's callable method to certain graph database's method to ensure data consistency within a transaction. This is no longer required.  
-    e.g 
+    - Previously, users had to pass the vector database's callable method to certain graph database's method to ensure data consistency within a transaction. This is no longer required.
+    e.g
     ```python
     ...
     # DEPRECATED
