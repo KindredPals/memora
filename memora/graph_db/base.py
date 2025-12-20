@@ -40,12 +40,13 @@ class BaseGraphDB(ABC):
 
     # Organization methods
     @abstractmethod
-    async def create_organization(self, org_name: str) -> models.Organization:
+    async def create_organization(self, org_name: str, org_id: Optional[str] = None) -> models.Organization:
         """
         Creates a new organization in the graph database.
 
         Args:
             org_name (str): The name of the organization to create.
+            org_id (Optional[str]): A predetermined shortUUID.
 
         Returns:
             Organization object containing:
@@ -124,7 +125,7 @@ class BaseGraphDB(ABC):
     # Agent methods
     @abstractmethod
     async def create_agent(
-        self, org_id: str, agent_label: str, user_id: Optional[str] = None
+        self, org_id: str, agent_label: str, user_id: Optional[str] = None, agent_id: Optional[str] = None
     ) -> models.Agent:
         """
         Creates a new agent in the graph database.
@@ -135,6 +136,8 @@ class BaseGraphDB(ABC):
             user_id (Optional[str]): Optional Short UUID of the user. This is used when the agent is created
                 specifically for a user, indicating that both the organization and the
                 user will have this agent.
+            agent_id (Optional[str]): Optional Short UUID of the agent. This is used when an agent has been
+                defined externally or deleted and needs to be restored.)
 
         Returns:
             Agent containing:

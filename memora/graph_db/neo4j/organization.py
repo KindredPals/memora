@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import neo4j
 import neo4j.exceptions
@@ -13,12 +13,13 @@ from ..base import BaseGraphDB
 class Neo4jOrganization(BaseGraphDB):
 
     @override
-    async def create_organization(self, org_name: str) -> models.Organization:
+    async def create_organization(self, org_name: str, org_id: Optional[str] = None) -> models.Organization:
         """
         Creates a new organization in the Neo4j graph database.
 
         Args:
             org_name (str): The name of the organization to create.
+            org_id (Optional[str]): A predetermined shortUUID.
 
         Returns:
             Organization object containing:
@@ -31,7 +32,8 @@ class Neo4jOrganization(BaseGraphDB):
         if not isinstance(org_name, str) or not org_name:
             raise TypeError("`org_name` must be a string and have a value.")
 
-        org_id = shortuuid.uuid()
+        if org_id is None:
+            org_id = shortuuid.uuid()
         self.logger.info(f"Creating organization with ID {org_id}")
 
         async def create_org_tx(tx):

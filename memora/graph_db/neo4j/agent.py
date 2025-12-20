@@ -14,7 +14,7 @@ class Neo4jAgent(BaseGraphDB):
 
     @override
     async def create_agent(
-        self, org_id: str, agent_label: str, user_id: Optional[str] = None
+        self, org_id: str, agent_label: str, user_id: Optional[str] = None, agent_id: Optional[str] = None
     ) -> models.Agent:
         """
         Creates a new agent in the Neo4j graph database.
@@ -25,6 +25,8 @@ class Neo4jAgent(BaseGraphDB):
             user_id (Optional[str]): Optional Short UUID of the user. This is used when the agent is created
                 specifically for a user, indicating that both the organization and the
                 user will have this agent.
+            agent_id (Optional[str]): Optional Short UUID of the agent. This is used when an agent has been
+                defined externally or deleted and needs to be restored.)
 
         Returns:
             Agent containing:
@@ -45,7 +47,9 @@ class Neo4jAgent(BaseGraphDB):
             if not isinstance(user_id, str):
                 raise ValueError("`user_id` must be a string.")
 
-        agent_id = shortuuid.uuid()
+        if agent_id is None:
+            agent_id = shortuuid.uuid()
+
         self.logger.info(f"Creating new agent with ID {agent_id}")
 
         async def create_agent_tx(tx):
